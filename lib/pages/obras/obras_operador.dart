@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:consugez_inventario/models/obras_model.dart';
 import 'package:consugez_inventario/pages/obras/tabs_create/asignar_mats.dart';
 import 'package:consugez_inventario/pages/obras/tabs_create/tablas_obras_aumento.dart';
 import 'package:consugez_inventario/providers/obras_fetch.dart';
 import 'package:consugez_inventario/theme/enviroments.dart';
+import 'package:dio/dio.dart';
 
 import 'package:dropdown_button2/dropdown_button2.dart';
 
@@ -11,24 +14,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
-class ObrasScreen extends ConsumerStatefulWidget {
+class ObrasOperador extends ConsumerStatefulWidget {
   @override
   _GuiaDetailsScreenState createState() => _GuiaDetailsScreenState();
 }
 
-class _GuiaDetailsScreenState extends ConsumerState<ObrasScreen> {
+class _GuiaDetailsScreenState extends ConsumerState<ObrasOperador> {
   String roles = "";
   String solicitantes = "";
+  int id = 0;
+  List<Obra> obras = [];
 
   getRole() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final role = prefs.getString('role');
     final solicitante = prefs.getString('sol');
-
+    final userid = prefs.getInt('userid');
     if (role != null) {
       setState(() {
         roles = role;
         solicitantes = solicitante!;
+        id = userid!;
       });
     }
     return role;
@@ -54,107 +60,138 @@ class _GuiaDetailsScreenState extends ConsumerState<ObrasScreen> {
   void initState() {
     super.initState();
     getRole();
-    ref.read(obraProviderFetch.notifier).fetchObras();
+  }
+
+  final Dio dio = Dio(BaseOptions(baseUrl: '${Enviroments.apiurl}/'));
+
+  Future<List<Obra>> fetchObrasByid(int id) async {
+    try {
+      final response = await dio.get('obras/${id}');
+      if (response.statusCode == 200) {
+        final jsonResponse = response.data;
+        final obraResponse = ObrasReponse.fromJson(jsonResponse);
+        obras = obraResponse.obras;
+        return obras;
+      } else {
+        throw Exception('Failed to load obras');
+      }
+    } catch (e) {
+      throw Exception('Failed to load obras: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final obras = ref.watch(obraProviderFetch);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Historial Obras'),
       ),
-      body: ListView.builder(
-        itemCount: obras.length,
-        itemBuilder: (context, index) {
-          return Card(
-            margin: const EdgeInsets.all(10),
-            child: ExpansionTile(
-              backgroundColor: Colors.white,
-              childrenPadding: const EdgeInsets.all(10),
-              title: Container(
-                padding: const EdgeInsets.all(10),
-                child: Row(children: [
-                  Text(
-                    "Nombre de Obra:${obras[index].nombreObra}",
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold),
+      body: FutureBuilder<List<Obra>>(
+        future: fetchObrasByid(id),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return ListView.builder(
+              itemCount: obras.length,
+              itemBuilder: (context, index) {
+                return Card(
+                  margin: const EdgeInsets.all(10),
+                  child: ExpansionTile(
+                    backgroundColor: Colors.white,
+                    childrenPadding: const EdgeInsets.all(10),
+                    title: Container(
+                      padding: const EdgeInsets.all(10),
+                      child: Row(children: [
+                        Text(
+                          "Nombre de Obra:${obras[index].nombreObra}",
+                          style: const TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        if (obras[index].estadoAutorizacion == "SINM" &&
+                            roles == "555")
+                          Submenu1(obras[index], roles, solicitantes),
+                        if (obras[index].estadoAutorizacion == "ENPR")
+                          Container(
+                            margin: EdgeInsets.all(10),
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.5),
+                                  spreadRadius: 5,
+                                  blurRadius: 7,
+                                  offset: Offset(
+                                      0, 3), // changes position of shadow
+                                ),
+                              ],
+                              color: Colors.yellow[200],
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              "En Proceso de Autorizacion Aumento",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        if (obras[index].estadoAutorizacion == "SGUI")
+                          Container(
+                            margin: EdgeInsets.all(10),
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.5),
+                                  spreadRadius: 5,
+                                  blurRadius: 7,
+                                  offset: Offset(
+                                      0, 3), // changes position of shadow
+                                ),
+                              ],
+                              color: const Color.fromARGB(255, 157, 255, 247),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              "En Proceso de Autorizacion Guia",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        if (roles == "777")
+                          Aminmenu(obras[index], roles, solicitantes),
+                        if (obras[index].estadoAutorizacion == "APR" &&
+                            roles == "555")
+                          Submenu2(obras[index], roles, solicitantes),
+                      ]),
+                    ),
+                    children: [
+                      ListTile(
+                        title: Text(
+                            'Cliente: ${obras[index].razonSocialComprador}'),
+                      ),
+                      const Divider(),
+                      const Text(
+                        "",
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      ListTile(
+                        title: Text('Ruc: ${obras[index].rucliente}'),
+                        subtitle: Text(
+                            'Encargado: ${obras[index].responsable}, FechaInicio: ${obras[index].fechaInicio}'),
+                      ),
+                    ],
                   ),
-                  if (obras[index].estadoAutorizacion == "SINM" &&
-                      roles == "555")
-                    Submenu1(obras[index], roles, solicitantes),
-                  if (obras[index].estadoAutorizacion == "ENPR")
-                    Container(
-                      margin: EdgeInsets.all(10),
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.5),
-                            spreadRadius: 5,
-                            blurRadius: 7,
-                            offset: Offset(0, 3), // changes position of shadow
-                          ),
-                        ],
-                        color: Colors.yellow[200],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        "En Proceso de Autorizacion Aumento",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                  if (obras[index].estadoAutorizacion == "SGUI")
-                    Container(
-                      margin: EdgeInsets.all(10),
-                      padding: EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.grey.withOpacity(0.5),
-                            spreadRadius: 5,
-                            blurRadius: 7,
-                            offset: Offset(0, 3), // changes position of shadow
-                          ),
-                        ],
-                        color: const Color.fromARGB(255, 157, 255, 247),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        "En Proceso de Autorizacion Guia",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                  if (roles == "777")
-                    Aminmenu(obras[index], roles, solicitantes),
-                  if (obras[index].estadoAutorizacion == "APR" &&
-                      roles == "555")
-                    Submenu2(obras[index], roles, solicitantes),
-                ]),
-              ),
-              children: [
-                ListTile(
-                  title: Text('Cliente: ${obras[index].razonSocialComprador}'),
-                ),
-                const Divider(),
-                const Text(
-                  "",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-                ListTile(
-                  title: Text('Ruc: ${obras[index].rucliente}'),
-                  subtitle: Text(
-                      'Encargado: ${obras[index].responsable}, FechaInicio: ${obras[index].fechaInicio}'),
-                ),
-              ],
-            ),
+                );
+              },
+            );
+          } else if (snapshot.hasError) {
+            return Text('${snapshot.error}');
+          }
+          return const Center(
+            child: CircularProgressIndicator(),
           );
         },
       ),

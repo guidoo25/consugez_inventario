@@ -1,3 +1,4 @@
+import 'package:consugez_inventario/pages/Products/Products_update.dart';
 import 'package:consugez_inventario/providers/product_state.dart';
 import 'package:consugez_inventario/theme/enviroments.dart';
 import 'package:dio/dio.dart';
@@ -5,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:consugez_inventario/models/product.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductView extends ConsumerStatefulWidget {
   @override
@@ -21,6 +23,7 @@ class _ProductViewState extends ConsumerState<ProductView> {
   final _searchController = TextEditingController();
   List<Product> _allProducts = [];
   List<Product> _foundProducts = [];
+  String users = '';
 
   @override
   void dispose() {
@@ -30,6 +33,18 @@ class _ProductViewState extends ConsumerState<ProductView> {
     _minstock.dispose();
     _searchController.dispose();
     super.dispose();
+  }
+
+  getuserName() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final user = prefs.getString('sol');
+    print(user);
+    if (user != null) {
+      setState(() {
+        users = user;
+      });
+    }
+    return user;
   }
 
   void _submitForm() {
@@ -51,7 +66,7 @@ class _ProductViewState extends ConsumerState<ProductView> {
       results = _allProducts;
     } else {
       results = _allProducts
-          .where((product) => product.category!
+          .where((product) => product.name!
               .toLowerCase()
               .contains(enteredKeyword.toLowerCase()))
           .toList();
@@ -75,8 +90,9 @@ class _ProductViewState extends ConsumerState<ProductView> {
     }
   }
 
-  Future<void> updateSotckValue(int id, int stock) async {
-    final response = await dio.put('productos/$id', data: {'quantity': stock});
+  Future<void> updateSotckValue(int id, int stock, String user) async {
+    final response = await dio
+        .put('productos/$id', data: {'quantity': stock, 'user_name': user});
     if (response.statusCode == 200) {
       setState(() {
         fetchProducts();
@@ -89,6 +105,7 @@ class _ProductViewState extends ConsumerState<ProductView> {
   @override
   void initState() {
     fetchProducts();
+    getuserName();
     super.initState();
   }
 
@@ -97,6 +114,17 @@ class _ProductViewState extends ConsumerState<ProductView> {
     String values = '';
     return Scaffold(
         appBar: AppBar(
+          actions: [
+            ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => ProductoUpdatelogs()),
+                  );
+                },
+                child: Text('Historial Actualizaciones')),
+          ],
           title: Text('Productos'),
         ),
         body: Column(
@@ -161,7 +189,8 @@ class _ProductViewState extends ConsumerState<ProductView> {
                                                   Navigator.of(context).pop();
                                                   updateSotckValue(
                                                       _foundProducts[index].id!,
-                                                      int.parse(values));
+                                                      int.parse(values),
+                                                      users);
 
                                                   setState(() {});
                                                 },

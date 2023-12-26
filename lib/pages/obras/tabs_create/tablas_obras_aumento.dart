@@ -85,6 +85,22 @@ class _TablasObrasAumentoState extends State<TablasObrasAumento> {
     }
   }
 
+  Future<void> eliminarMaterial(int idObra, int idMaterial) async {
+    final response = await http.delete(
+      Uri.parse(
+          '${Enviroments.apiurl}/obras/$idObra/materiales/$idMaterial'), // Reemplaza 'your-api-url' con la URL de tu API
+      headers: <String, String>{
+        'Content-Type': 'application/json; charset=UTF-8',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      print('Material eliminado exitosamente');
+    } else {
+      throw Exception('Error al eliminar el material: ${response.body}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     String values = '1';
@@ -162,58 +178,74 @@ class _TablasObrasAumentoState extends State<TablasObrasAumento> {
                         DaviColumn(
                           name: 'Acciones',
                           cellBuilder: (context, rowData) {
-                            return IconButton(
-                                icon: const Icon(Icons.check_box),
-                                onPressed: () {
-                                  aumentarCantidad(
-                                      widget.idObra.id,
-                                      rowData.data.id,
-                                      rowData.data.cantidadFaltante!,
-                                      widget.solicitante);
-                                  setState(() {});
-                                });
+                            return Row(
+                              children: [
+                                IconButton(
+                                    icon: const Icon(Icons.check_box),
+                                    onPressed: () {
+                                      aumentarCantidad(
+                                          widget.idObra.id,
+                                          rowData.data.id,
+                                          rowData.data.cantidadFaltante!,
+                                          widget.solicitante);
+                                      setState(() {});
+                                    }),
+                              ],
+                            );
                           },
                         ),
                       if (widget.role == '555' || widget.role == '777')
                         DaviColumn(
                           name: 'Asignar Aumento',
                           cellBuilder: (context, rowData) {
-                            return IconButton(
-                              icon: const Icon(Icons.add_circle_outline),
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: const Text('Aumentar Cantidad'),
-                                      content: TextFormField(
-                                        // initialValue y onFieldSubmitted dependen de tu implementación
-                                        initialValue: '1',
-                                        keyboardType: TextInputType.number,
-                                        onChanged: (value) {
-                                          //guardar el valor
-                                          values = value;
-                                        },
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          child: Text('Aceptar'),
-                                          onPressed: () {
-                                            Navigator.of(context).pop();
+                            return Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.add_circle_outline),
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          title:
+                                              const Text('Aumentar Cantidad'),
+                                          content: TextFormField(
+                                            // initialValue y onFieldSubmitted dependen de tu implementación
+                                            initialValue: '1',
+                                            keyboardType: TextInputType.number,
+                                            onChanged: (value) {
+                                              //guardar el valor
+                                              values = value;
+                                            },
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              child: Text('Aceptar'),
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
 
-                                            updateMaterialfaltante(
-                                                widget.idObra.id,
-                                                rowData.data.id,
-                                                values,
-                                                widget.solicitante);
-                                            setState(() {});
-                                          },
-                                        ),
-                                      ],
+                                                updateMaterialfaltante(
+                                                    widget.idObra.id,
+                                                    rowData.data.id,
+                                                    values,
+                                                    widget.solicitante);
+                                                setState(() {});
+                                              },
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     );
                                   },
-                                );
-                              },
+                                ),
+                                IconButton(
+                                    icon: const Icon(Icons.delete),
+                                    onPressed: () {
+                                      eliminarMaterial(
+                                          widget.idObra.id, rowData.data.id);
+                                      setState(() {});
+                                    })
+                              ],
                             );
                           },
                         )

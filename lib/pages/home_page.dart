@@ -2,6 +2,7 @@ import 'package:consugez_inventario/pages/Guia_state.dart';
 import 'package:consugez_inventario/pages/Products/Product_view.dart';
 import 'package:consugez_inventario/pages/Products/admin_panel.dart';
 import 'package:consugez_inventario/pages/obras/create_multi.dart';
+import 'package:consugez_inventario/pages/obras/obras_operador.dart';
 import 'package:consugez_inventario/pages/obras/obras_view.dart';
 import 'package:consugez_inventario/pages/usuario_tabs/create_usuarios_screen.dart';
 
@@ -37,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   int _selectedIndex = 0;
+  final OperadorOptions = [ObrasOperador(), CreateMultiPage()];
   final widgetOptions = [
     const DesktopScaffold(),
     //FacturaWidget(),
@@ -96,7 +98,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Expanded(
             child: roles == "888"
                 ? bodegaOptions.elementAt(_selectedIndex)
-                : widgetOptions.elementAt(_selectedIndex),
+                : roles == "777"
+                    ? widgetOptions.elementAt(_selectedIndex)
+                    : OperadorOptions.elementAt(_selectedIndex),
           ),
         ],
       ),

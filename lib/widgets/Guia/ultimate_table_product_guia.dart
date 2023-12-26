@@ -276,6 +276,7 @@ class _TablasObrasAumentoState extends ConsumerState<TablaGuia> {
       "numero_factura": Numeracion,
     });
     print(response);
+    print("actualizado factura");
   }
 
   Future<Map<String, dynamic>> _generarNumeroFacturaDesdeHive() async {

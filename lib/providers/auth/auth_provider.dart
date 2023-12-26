@@ -37,7 +37,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     if (resp.statusCode == 200) {
       final loginResponse = authReponseFromJson(resp.body);
 
-      await this._guardarToken(loginResponse.rol, loginResponse.nombre);
+      await this._guardarToken(
+          loginResponse.rol, loginResponse.nombre, loginResponse.userId);
 
       return true;
     } else {
@@ -45,10 +46,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> _guardarToken(String role, String solicitante) async {
+  Future<void> _guardarToken(
+      String role, String solicitante, int userid) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('role', role);
     await prefs.setString('sol', solicitante);
+    await prefs.setInt('userid', userid);
   }
 }
 

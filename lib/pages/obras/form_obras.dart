@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:animated_custom_dropdown/custom_dropdown.dart';
 import 'package:consugez_inventario/models/client.dart';
-import 'package:consugez_inventario/models/tabs/responsables.dart';
 import 'package:consugez_inventario/pages/usuario_tabs/tabs/lsit_crud_users.dart';
 import 'package:consugez_inventario/theme/enviroments.dart';
 import 'package:consugez_inventario/widgets/Guia/clientSelection.dart';
@@ -11,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FormObras extends ConsumerStatefulWidget {
   @override
@@ -32,6 +32,7 @@ class _FormObrasState extends ConsumerState<FormObras> {
   @override
   void initState() {
     super.initState();
+    getUserId();
     fechaInicioController.text =
         DateFormat('dd-MM-yyyy').format(DateTime.now());
   }
@@ -41,6 +42,17 @@ class _FormObrasState extends ConsumerState<FormObras> {
     setState(() {
       selectedClient = cliente;
     });
+  }
+
+  int id = 0;
+  getUserId() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final user = prefs.getInt('userid');
+    if (user != null) {
+      setState(() {
+        id = user;
+      });
+    }
   }
 
   Future<List<User>> getUsers() async {
@@ -59,7 +71,7 @@ class _FormObrasState extends ConsumerState<FormObras> {
     }
   }
 
-  Future<void> postObra() async {
+  Future<void> postObra(int uid) async {
     try {
       final url = Uri.parse('${Enviroments.apiurl}/obras');
       final headers = {'Content-Type': 'application/json'};
@@ -70,6 +82,7 @@ class _FormObrasState extends ConsumerState<FormObras> {
         'Ubicacion': ubicacionController.text,
         'Responsable': responsableController.text,
         'cliente_id': selectedClient?.id,
+        'userid': uid,
       });
 
       final response = await http.post(url, headers: headers, body: body);
@@ -214,7 +227,7 @@ class _FormObrasState extends ConsumerState<FormObras> {
                     ElevatedButton(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
-                          postObra();
+                          postObra(id);
                         }
                       },
                       child:

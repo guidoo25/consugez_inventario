@@ -39,32 +39,38 @@ class _TablasObrasAumentoState extends ConsumerState<TablaAsignarMats> {
   List<ItemDetails> itemDetailsList = [];
 //////funciones para importar productos desde un archivo csv
   void pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result != null) {
-      PlatformFile file = result.files.first;
+    try {
+      FilePickerResult? result = await FilePicker.platform
+          .pickFiles(type: FileType.custom, allowedExtensions: ['csv']);
+      if (result != null) {
+        PlatformFile file = result.files.first;
 
-      final input = new File(file.path!).openRead();
-      final fields = await input
-          .transform(latin1.decoder)
-          .transform(new CsvToListConverter(fieldDelimiter: ';'))
-          .toList();
-      //mappear los fields a la lista de productos
-      for (var i = 0; i < fields.length; i++) {
-        if (fields[i].isNotEmpty) {
-          final product = Product(
-            inCart: fields[i][2].toInt(),
-            category: fields[i][0].toString(),
-            name: fields[i][1].toString(),
-          );
-          setState(() {
-            ref.read(productProvider.notifier).addProduct(product);
-          });
-        } else {
-          print('Row $i is empty');
+        final input = new File(file.path!).openRead();
+        final fields = await input
+            .transform(latin1.decoder)
+            .transform(new CsvToListConverter(fieldDelimiter: ';'))
+            .toList();
+        //mappear los fields a la lista de productos
+        for (var i = 0; i < fields.length; i++) {
+          if (fields[i].isNotEmpty) {
+            final product = Product(
+              inCart: fields[i][2].toInt(),
+              category: fields[i][0].toString(),
+              name: fields[i][1].toString(),
+            );
+            setState(() {
+              ref.read(productProvider.notifier).addProduct(product);
+            });
+          } else {
+            print('Row $i is empty');
+          }
         }
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al importar productos: $e')),
+      );
     }
-    ;
   }
 
   Future<void> _checkStock(String codigo, double qnty) async {
@@ -248,32 +254,36 @@ class _TablasObrasAumentoState extends ConsumerState<TablaAsignarMats> {
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.05,
           child: ElevatedButton(
-              child: Text('Asignar Materiales'),
-              onPressed: () async {
-                final details = getDetails();
+            child: Text('Asignar Materiales', style: TextStyle(fontSize: 16)),
+            onPressed: widget.productos.isEmpty
+                ? null
+                : () async {
+                    // final details = getDetails();
 
-                for (var i = 0; i < widget.productos.length; i++) {
-                  final product = widget.productos[i];
-                  if (widget.obra.id != null &&
-                      product.name != null &&
-                      product.inCart != null &&
-                      product.category != null) {
-                    await asignarMateriales(
-                        widget.obra.id.toString(),
-                        product.name.toString(),
-                        product.inCart!.toString(),
-                        product.category.toString(),
-                        DateTime.now().toString());
-                  } else {
-                    print('Uno de los valores es nulo');
-                    print('widget.obra.id: ${widget.obra.id}');
-                    print('product.name: ${product.name}');
-                    print('product.inCart: ${product.inCart}');
-                    print('product.id: ${product.category}');
-                  }
-                }
-              }),
+                    for (var i = 0; i < widget.productos.length; i++) {
+                      final product = widget.productos[i];
+                      if (widget.obra.id != null &&
+                          product.name != null &&
+                          product.inCart != null &&
+                          product.category != null) {
+                        await asignarMateriales(
+                            widget.obra.id.toString(),
+                            product.name.toString(),
+                            product.inCart!.toString(),
+                            product.category.toString(),
+                            DateTime.now().toString());
+                      } else {
+                        print('Uno de los valores es nulo');
+                        print('widget.obra.id: ${widget.obra.id}');
+                        print('product.name: ${product.name}');
+                        print('product.inCart: ${product.inCart}');
+                        print('product.id: ${product.category}');
+                      }
+                    }
+                  },
+          ),
         ),
+        const Divider(),
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.05,
           child: ElevatedButton(
@@ -298,21 +308,25 @@ class _TablasObrasAumentoState extends ConsumerState<TablaAsignarMats> {
                 },
               );
             },
-            child: Text("Agregar productos"),
-            style: ElevatedButton.styleFrom(
-              textStyle: TextStyle(fontSize: 16), // Tamaño del texto del botón
-            ),
+            child: Text("Agregar productos", style: TextStyle(fontSize: 16)),
           ),
         ),
+        const Divider(),
         SizedBox(
           height: MediaQuery.of(context).size.height * 0.05,
           child: ElevatedButton(
             onPressed: () {
               pickFile();
             },
-            child: Text("Importar productos"),
-            style: ElevatedButton.styleFrom(
-              textStyle: TextStyle(fontSize: 16), // Tamaño del texto del botón
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("Importar desde Proforma", style: TextStyle(fontSize: 16)),
+                SizedBox(
+                  width: 10,
+                ),
+                Icon(Icons.import_export)
+              ],
             ),
           ),
         ),

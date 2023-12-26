@@ -10,13 +10,12 @@ class CreateMultiPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(),
       body: DefaultTabController(
-        length: 3, // Replace 3 with the number of tabs you want
+        length: 2, // Replace 3 with the number of tabs you want
         child: Column(
           children: [
             const TabBar(
               tabs: [
                 Tab(text: 'Obras'),
-                Tab(text: 'Responsables'),
                 Tab(text: 'Materiales'),
               ],
             ),
@@ -29,11 +28,7 @@ class CreateMultiPage extends StatelessWidget {
                     ),
                   ),
                   // Replace these with your tab views
-                  Container(
-                    child: Center(
-                      child: bulkUpload(),
-                    ),
-                  ),
+
                   Container(
                     child: Center(
                       child: CreateProductScreen(),
